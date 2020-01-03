@@ -6647,6 +6647,53 @@ cmd_tray(ProfWin *window, const char *const command, gchar **args)
         }
 
         return TRUE;
+    } else if (g_strcmp0(args[0], "statusicon") == 0) {
+        gboolean was_enabled = prefs_get_boolean(PREF_TRAY_STATUSICON);
+        if (prefs_get_boolean(PREF_TRAY) == FALSE) {
+            cons_show("Tray icon not currently enabled, see /help tray");
+        } else if (g_strcmp0(args[1], "on") == 0) {
+            prefs_set_boolean(PREF_TRAY_STATUSICON, TRUE);
+            if (!was_enabled) {
+                tray_statusicon_enable();
+            }
+
+            cons_show("Tray icon via statusicon enabled.");
+        } else if (g_strcmp0(args[1], "off") == 0) {
+            prefs_set_boolean(PREF_TRAY_STATUSICON, FALSE);
+            if (was_enabled) {
+                tray_statusicon_disable();
+            }
+            cons_show("Tray icon via statusicon disabled.");
+        } else {
+            cons_bad_cmd_usage(command);
+        }
+
+        return TRUE;
+#ifdef HAVE_APPINDICATOR
+    } else if (g_strcmp0(args[0], "appindicator") == 0) {
+        gboolean was_enabled = prefs_get_boolean(PREF_TRAY_APPINDICATOR);
+        if (prefs_get_boolean(PREF_TRAY) == FALSE) {
+            cons_show("Tray icon not currently enabled, see /help tray");
+        } else if (g_strcmp0(args[1], "on") == 0) {
+            prefs_set_boolean(PREF_TRAY_APPINDICATOR, TRUE);
+            if( !was_enabled ) {
+                tray_appindicator_enable();
+            }
+
+            cons_show("Tray icon via appindicator enabled.");
+        } else if (g_strcmp0(args[1], "off") == 0) {
+            prefs_set_boolean(PREF_TRAY_APPINDICATOR, FALSE);
+            if( was_enabled ) {
+                tray_appindicator_disable();
+            }
+            cons_show("Tray icon via appindicator disabled.");
+        } else {
+            cons_bad_cmd_usage(command);
+        }
+        
+
+        return TRUE;
+#endif
     } else {
         gboolean old = prefs_get_boolean(PREF_TRAY);
         _cmd_set_boolean_preference(args[0], command, "Tray icon", PREF_TRAY);

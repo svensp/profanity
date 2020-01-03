@@ -844,6 +844,10 @@ cmd_ac_init(void)
     autocomplete_add(tray_ac, "off");
     autocomplete_add(tray_ac, "read");
     autocomplete_add(tray_ac, "timer");
+    autocomplete_add(tray_ac, "statusicon");
+#ifdef HAVE_APPINDICATOR
+    autocomplete_add(tray_ac, "appindicator");
+#endif
 
     presence_ac = autocomplete_new();
     autocomplete_add(presence_ac, "titlebar");
@@ -1675,6 +1679,16 @@ static char*
 _tray_autocomplete(ProfWin *window, const char *const input, gboolean previous)
 {
     char *result = NULL;
+    result = autocomplete_param_with_func(input, "/tray statusicon", prefs_autocomplete_boolean_choice, previous);
+    if (result) {
+        return result;
+    }
+
+    result = autocomplete_param_with_func(input, "/tray appindicator", prefs_autocomplete_boolean_choice, previous);
+    if (result) {
+        return result;
+    }
+
     result = autocomplete_param_with_func(input, "/tray read", prefs_autocomplete_boolean_choice, previous);
     if (result) {
         return result;

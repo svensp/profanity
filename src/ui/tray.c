@@ -56,11 +56,18 @@ static GString *icon_filename = NULL;
 static GString *icon_msg_filename = NULL;
 static gint unread_messages;
 static gboolean shutting_down;
+static gboolean statusicon_disabled;
 static guint timer;
 #ifdef HAVE_APPINDICATOR
 static AppIndicator *indicator = NULL;
 static GtkMenu *indicator_menu = NULL;
+static gboolean appindicator_disabled;
 #endif
+
+void
+_tray_appindicator_update(int unread_messages);
+void
+_tray_statusicon_update(int unread_messages);
 
 /*
  * Get icons from installation share folder or (if defined) .locale user's folder
@@ -136,41 +143,16 @@ _tray_change_icon(gpointer data)
     }
 
     unread_messages = wins_get_total_unread();
-
-    if (unread_messages) {
-#ifdef HAVE_APPINDICATOR
-        app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ATTENTION);
-#endif
-        if (!prof_tray) {
-            prof_tray = gtk_status_icon_new_from_file(icon_msg_filename->str);
-        } else {
-            gtk_status_icon_set_from_file(prof_tray, icon_msg_filename->str);
-        }
-    } else {
-        if (prefs_get_boolean(PREF_TRAY_READ)) {
-#ifdef HAVE_APPINDICATOR
-            app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ACTIVE);
-#endif
-            if (!prof_tray) {
-                prof_tray = gtk_status_icon_new_from_file(icon_filename->str);
-            } else {
-                gtk_status_icon_set_from_file(prof_tray, icon_filename->str);
-            }
-        } else {
-#ifdef HAVE_APPINDICATOR
-            app_indicator_set_status(indicator, APP_INDICATOR_STATUS_PASSIVE);
-#endif
-            g_clear_object(&prof_tray);
-            prof_tray = NULL;
-        }
-    }
-
+    _tray_statusicon_update(unread_messages);
+    _tray_appindicator_update(unread_messages);
     return TRUE;
 }
 
 void
 tray_init(void)
 {
+    statusicon_disabled = TRUE;
+    appindicator_disabled = TRUE;
     _get_icons();
     gtk_ready = gtk_init_check(0, NULL);
     log_debug("Env is GTK-ready: %s", gtk_ready ? "true" : "false");
@@ -221,13 +203,92 @@ tray_set_timer(int interval)
 void
 tray_enable(void)
 {
-    prof_tray = gtk_status_icon_new_from_file(icon_filename->str);
     shutting_down = FALSE;
-    _tray_change_icon(NULL);
     int interval = prefs_get_tray_timer() * 1000;
     timer = g_timeout_add(interval, _tray_change_icon, NULL);
 
+    if (prefs_get_boolean(PREF_TRAY_STATUSICON)) {
+        tray_statusicon_enable();
+    }
+    if (prefs_get_boolean(PREF_TRAY_APPINDICATOR)) {
+        tray_appindicator_enable();
+    }
+}
+
+void
+tray_disable(void)
+{
+    shutting_down = TRUE;
+    g_source_remove(timer);
+    tray_statusicon_disable();
+    tray_appindicator_disable();
+}
+
+/**
+ * statusicon
+ *
+ * This uses the gtk statusicon functions to create a gtk compatible system tray
+ * icon
+ **/
+void
+tray_statusicon_enable(void)
+{
+    statusicon_disabled = FALSE;
+
+    prof_tray = gtk_status_icon_new_from_file(icon_filename->str);
+    _tray_change_icon(NULL);
+}
+
+void
+tray_statusicon_disable(void)
+{
+    statusicon_disabled = TRUE;
+
+    if (prof_tray) {
+        g_clear_object(&prof_tray);
+        prof_tray = NULL;
+    }
+}
+
+void
+_tray_statusicon_update(int unread_messages)
+{
+    if (statusicon_disabled) {
+        return;
+    }
+
+    if (unread_messages) {
+        if (!prof_tray) {
+            prof_tray = gtk_status_icon_new_from_file(icon_msg_filename->str);
+        } else {
+            gtk_status_icon_set_from_file(prof_tray, icon_msg_filename->str);
+        }
+    } else {
+        if (prefs_get_boolean(PREF_TRAY_READ)) {
+            if (!prof_tray) {
+                prof_tray = gtk_status_icon_new_from_file(icon_filename->str);
+            } else {
+                gtk_status_icon_set_from_file(prof_tray, icon_filename->str);
+            }
+        } else {
+            g_clear_object(&prof_tray);
+            prof_tray = NULL;
+        }
+    }
+}
+
+/**
+ * appindicator
+ *
+ * This uses the ayatana-appindicator library to create a SNI standart conform
+ * system tray icon
+ **/
+void
+tray_appindicator_enable(void)
+{
 #ifdef HAVE_APPINDICATOR
+    appindicator_disabled = FALSE;
+
     indicator_menu = (GtkMenu *)gtk_menu_new();
     indicator = app_indicator_new ("profanity-im",
             "proIcon",
@@ -245,14 +306,10 @@ tray_enable(void)
 }
 
 void
-tray_disable(void)
+tray_appindicator_disable(void)
 {
-    shutting_down = TRUE;
-    g_source_remove(timer);
-    if (prof_tray) {
-        g_clear_object(&prof_tray);
-        prof_tray = NULL;
-    }
+    appindicator_disabled = TRUE;
+
 #ifdef HAVE_APPINDICATOR
     if (indicator) {
         g_clear_object(&indicator);
@@ -261,6 +318,26 @@ tray_disable(void)
     if (indicator_menu) {
         g_clear_object(&indicator_menu);
         indicator_menu = NULL;
+    }
+#endif
+}
+
+void
+_tray_appindicator_update(int unread_messages)
+{
+#ifdef HAVE_APPINDICATOR
+    if (appindicator_disabled) {
+        return;
+    }
+
+    if (unread_messages) {
+        app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ATTENTION);
+    } else {
+        if (prefs_get_boolean(PREF_TRAY_READ)) {
+            app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ACTIVE);
+        } else {
+            app_indicator_set_status(indicator, APP_INDICATOR_STATUS_PASSIVE);
+        }
     }
 #endif
 }

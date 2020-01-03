@@ -1219,6 +1219,18 @@ cons_tray_setting(void)
     else
         cons_show("Tray icon read (/tray)              : OFF");
 
+    if (prefs_get_boolean(PREF_TRAY_STATUSICON))
+        cons_show("Tray icon statusicon (/tray)        : ON");
+    else
+        cons_show("Tray icon statusicon (/tray)        : OFF");
+
+#ifdef HAVE_APPINDICATOR
+    if (prefs_get_boolean(PREF_TRAY_APPINDICATOR))
+        cons_show("Tray icon appindicator (/tray)      : ON");
+    else
+        cons_show("Tray icon appindicator (/tray)      : OFF");
+#endif
+
     int seconds = prefs_get_tray_timer();
     if (seconds == 1) {
         cons_show("Tray timer (/tray)                  : 1 second");
