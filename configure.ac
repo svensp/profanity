@@ -77,12 +77,12 @@ AC_ARG_ENABLE([appindicator],
 # appindicator
 if test "x$enable_appindicator" != xno; then
     AM_CONDITIONAL([BUILD_APPINDICATOR], [true])
-    PKG_CHECK_EXISTS([appindicator-0.1 >= 0.4.0],,
-                     AC_MSG_ERROR([appindicator-0.1 is not installed]))
+    PKG_CHECK_EXISTS([ayatana-appindicator-0.1 >= 0.4.0],,
+                     AC_MSG_ERROR([ayatana-appindicator-0.1 is not installed]))
     PKG_CHECK_MODULES(APP_INDICATOR,
-                      appindicator-0.1 >= 0.4.0,
+                      ayatana-appindicator-0.1 >= 0.4.0,
        [LIBS="$APP_INDICATOR_LIBS $LIBS" CFLAGS="$CFLAGS $APP_INDICATOR_CFLAGS"
-        AC_DEFINE([HAVE_APPINDICATOR], [1], [lib appindicator])]
+        AC_DEFINE([HAVE_APPINDICATOR], [1], [lib ayatana-appindicator])]
        )
 else
     AM_CONDITIONAL([BUILD_APPINDICATOR], [false])
