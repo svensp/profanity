@@ -152,7 +152,9 @@ void
 tray_init(void)
 {
     statusicon_disabled = TRUE;
+#ifdef HAVE_APPINDICATOR
     appindicator_disabled = TRUE;
+#endif
     _get_icons();
     gtk_ready = gtk_init_check(0, NULL);
     log_debug("Env is GTK-ready: %s", gtk_ready ? "true" : "false");
@@ -308,9 +310,9 @@ tray_appindicator_enable(void)
 void
 tray_appindicator_disable(void)
 {
+#ifdef HAVE_APPINDICATOR
     appindicator_disabled = TRUE;
 
-#ifdef HAVE_APPINDICATOR
     if (indicator) {
         g_clear_object(&indicator);
         indicator = NULL;
