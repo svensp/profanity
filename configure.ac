@@ -13,6 +13,7 @@ AM_INIT_AUTOMAKE([foreign subdir-objects])
 ### Checks for programs.
 AC_PROG_CC
 AC_PROG_LIBTOOL
+PKG_PROG_PKG_CONFIG
 
 ## Check for LFS
 AC_SYS_LARGEFILE
@@ -68,8 +69,24 @@ AC_ARG_WITH([themes],
     [AS_HELP_STRING([--with-themes[[=PATH]]], [install themes (default yes)])])
 AC_ARG_ENABLE([icons-and-clipboard],
     [AS_HELP_STRING([--enable-icons-and-clipboard], [enable GTK tray icons and clipboard paste support])])
+AC_ARG_ENABLE([appindicator],
+    [AS_HELP_STRING([--enable-appindicator], [enable Appindicator tray icons])])
 
 ### plugins
+
+# appindicator
+if test "x$enable_appindicator" != xno; then
+    AM_CONDITIONAL([BUILD_APPINDICATOR], [true])
+    PKG_CHECK_EXISTS([appindicator-0.1 >= 0.4.0],,
+                     AC_MSG_ERROR([appindicator-0.1 is not installed]))
+    PKG_CHECK_MODULES(APP_INDICATOR,
+                      appindicator-0.1 >= 0.4.0,
+       [LIBS="$APP_INDICATOR_LIBS $LIBS" CFLAGS="$CFLAGS $APP_INDICATOR_CFLAGS"
+        AC_DEFINE([HAVE_APPINDICATOR], [1], [lib appindicator])]
+       )
+else
+    AM_CONDITIONAL([BUILD_APPINDICATOR], [false])
+fi
 
 # python
 if test "x$enable_plugins" = xno; then
