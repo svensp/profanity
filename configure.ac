@@ -74,20 +74,6 @@ AC_ARG_ENABLE([appindicator],
 
 ### plugins
 
-# appindicator
-if test "x$enable_appindicator" != xno; then
-    AM_CONDITIONAL([BUILD_APPINDICATOR], [true])
-    PKG_CHECK_EXISTS([ayatana-appindicator-0.1 >= 0.4.0],,
-                     AC_MSG_ERROR([ayatana-appindicator-0.1 is not installed]))
-    PKG_CHECK_MODULES(APP_INDICATOR,
-                      ayatana-appindicator-0.1 >= 0.4.0,
-       [LIBS="$APP_INDICATOR_LIBS $LIBS" CFLAGS="$CFLAGS $APP_INDICATOR_CFLAGS"
-        AC_DEFINE([HAVE_APPINDICATOR], [1], [lib ayatana-appindicator])]
-       )
-else
-    AM_CONDITIONAL([BUILD_APPINDICATOR], [false])
-fi
-
 # python
 if test "x$enable_plugins" = xno; then
     AM_CONDITIONAL([BUILD_PYTHON_API], [false])
@@ -198,6 +184,23 @@ AS_IF([test "x$enable_icons_and_clipboard" != xno],
         [AS_IF([test "x$enable_icons_and_clipboard" = xyes],
             [AC_MSG_ERROR([gtk+-2.0 or higher is required for icons])],
             [AC_MSG_NOTICE([gtk+-2.0 not found, icons and clipboard not enabled])])])])
+
+# appindicator
+if test "x$enable_appindicator" != xno; then
+    if test "x$enable_icons_and_clipboard" = xno; then
+       AC_MSG_ERROR([appindicator is enabled but icons and clipboard is not. appindicator depends on icons and clipboard])
+    fi
+    AM_CONDITIONAL([BUILD_APPINDICATOR], [true])
+    PKG_CHECK_EXISTS([ayatana-appindicator-0.1 >= 0.4.0],,
+                     AC_MSG_ERROR([ayatana-appindicator-0.1 is not installed]))
+    PKG_CHECK_MODULES(APP_INDICATOR,
+                      ayatana-appindicator-0.1 >= 0.4.0,
+       [LIBS="$APP_INDICATOR_LIBS $LIBS" CFLAGS="$CFLAGS $APP_INDICATOR_CFLAGS"
+        AC_DEFINE([HAVE_APPINDICATOR], [1], [lib ayatana-appindicator])]
+       )
+else
+    AM_CONDITIONAL([BUILD_APPINDICATOR], [false])
+fi
 
 AS_IF([test "x$PLATFORM" = xosx],
     [AC_CHECK_FILE([/usr/local/opt/readline/lib],
