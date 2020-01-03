@@ -40,6 +40,9 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <stdlib.h>
+#ifdef HAVE_APPINDICATOR
+#include <libayatana-appindicator/app-indicator.h>
+#endif
 
 #include "log.h"
 #include "config/preferences.h"
@@ -54,6 +57,10 @@ static GString *icon_msg_filename = NULL;
 static gint unread_messages;
 static gboolean shutting_down;
 static guint timer;
+#ifdef HAVE_APPINDICATOR
+static AppIndicator *indicator = NULL;
+static GtkMenu *indicator_menu = NULL;
+#endif
 
 /*
  * Get icons from installation share folder or (if defined) .locale user's folder
@@ -131,6 +138,9 @@ _tray_change_icon(gpointer data)
     unread_messages = wins_get_total_unread();
 
     if (unread_messages) {
+#ifdef HAVE_APPINDICATOR
+        app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ATTENTION);
+#endif
         if (!prof_tray) {
             prof_tray = gtk_status_icon_new_from_file(icon_msg_filename->str);
         } else {
@@ -138,12 +148,18 @@ _tray_change_icon(gpointer data)
         }
     } else {
         if (prefs_get_boolean(PREF_TRAY_READ)) {
+#ifdef HAVE_APPINDICATOR
+            app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ACTIVE);
+#endif
             if (!prof_tray) {
                 prof_tray = gtk_status_icon_new_from_file(icon_filename->str);
             } else {
                 gtk_status_icon_set_from_file(prof_tray, icon_filename->str);
             }
         } else {
+#ifdef HAVE_APPINDICATOR
+            app_indicator_set_status(indicator, APP_INDICATOR_STATUS_PASSIVE);
+#endif
             g_clear_object(&prof_tray);
             prof_tray = NULL;
         }
@@ -210,6 +226,22 @@ tray_enable(void)
     _tray_change_icon(NULL);
     int interval = prefs_get_tray_timer() * 1000;
     timer = g_timeout_add(interval, _tray_change_icon, NULL);
+
+#ifdef HAVE_APPINDICATOR
+    indicator_menu = (GtkMenu *)gtk_menu_new();
+    indicator = app_indicator_new ("profanity-im",
+            "proIcon",
+            APP_INDICATOR_CATEGORY_COMMUNICATIONS);
+
+    GString *icons_dir =  NULL;
+
+    app_indicator_set_icon_theme_path(indicator, ICONS_PATH);
+    g_string_free(icons_dir, TRUE);
+
+    app_indicator_set_status (indicator, APP_INDICATOR_STATUS_ACTIVE);
+    app_indicator_set_attention_icon_full (indicator, "proIconMsg", "Unread messages");
+    app_indicator_set_menu(indicator, indicator_menu);
+#endif
 }
 
 void
@@ -221,6 +253,16 @@ tray_disable(void)
         g_clear_object(&prof_tray);
         prof_tray = NULL;
     }
+#ifdef HAVE_APPINDICATOR
+    if (indicator) {
+        g_clear_object(&indicator);
+        indicator = NULL;
+    }
+    if (indicator_menu) {
+        g_clear_object(&indicator_menu);
+        indicator_menu = NULL;
+    }
+#endif
 }
 
 #endif
